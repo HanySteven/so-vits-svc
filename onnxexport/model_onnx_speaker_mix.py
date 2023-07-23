@@ -205,13 +205,7 @@ class F0Decoder(nn.Module):
         self.spk_channels = spk_channels
 
         self.prenet = nn.Conv1d(hidden_channels, hidden_channels, 3, padding=1)
-        self.decoder = attentions.FFT(
-            hidden_channels,
-            filter_channels,
-            n_heads,
-            n_layers,
-            kernel_size,
-            p_dropout)
+        self.decoder = attentions.FFT(hidden_channels, filter_channels, n_heads, n_layers, kernel_size, p_dropout)
         self.proj = nn.Conv1d(hidden_channels, out_channels, 1)
         self.f0_prenet = nn.Conv1d(1, hidden_channels, 3, padding=1)
         self.cond = nn.Conv1d(spk_channels, hidden_channels, 1)
@@ -310,7 +304,7 @@ class SynthesizerTrn(nn.Module):
         )
         self.emb_uv = nn.Embedding(2, hidden_channels)
         self.predict_f0 = False
-        cluster_model_path="kmeans_10000.pt"
+        cluster_model_path = "kmeans_10000.pt"
         if os.path.exists(cluster_model_path):
             self.cluster_model = cluster.get_cluster_model(cluster_model_path)
         else:
@@ -346,7 +340,6 @@ class SynthesizerTrn(nn.Module):
         else:
             g = g.unsqueeze(0)
             g = self.emb_g(g).transpose(1, 2)
-
 
         x_mask = torch.unsqueeze(commons.sequence_mask(c_lengths, c.size(2)), 1).to(c.dtype)
         x = self.pre(c) * x_mask + self.emb_uv(uv.long()).transpose(1, 2)

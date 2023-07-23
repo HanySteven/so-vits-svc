@@ -18,9 +18,7 @@ class Hubert(nn.Module):
         self.norm = nn.LayerNorm(768)
         self.dropout = nn.Dropout(0.1)
         self.encoder = TransformerEncoder(
-            nn.TransformerEncoderLayer(
-                768, 12, 3072, activation="gelu", batch_first=True
-            ),
+            nn.TransformerEncoderLayer(768, 12, 3072, activation="gelu", batch_first=True),
             12,
         )
         self.proj = nn.Linear(768, 256)
@@ -35,9 +33,7 @@ class Hubert(nn.Module):
             x[mask] = self.masked_spec_embed.to(x.dtype)
         return x, mask
 
-    def encode(
-            self, x: torch.Tensor, layer: Optional[int] = None
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    def encode(self, x: torch.Tensor, layer: Optional[int] = None) -> Tuple[torch.Tensor, torch.Tensor]:
         x = self.feature_extractor(x)
         x = self.feature_projection(x.transpose(1, 2))
         x, mask = self.mask(x)
@@ -66,6 +62,7 @@ class HubertSoft(Hubert):
 
     def forward(self, x):
         return self.units(x)
+
 
 class FeatureExtractor(nn.Module):
     def __init__(self):
@@ -107,13 +104,7 @@ class FeatureProjection(nn.Module):
 class PositionalConvEmbedding(nn.Module):
     def __init__(self):
         super().__init__()
-        self.conv = nn.Conv1d(
-            768,
-            768,
-            kernel_size=128,
-            padding=128 // 2,
-            groups=16,
-        )
+        self.conv = nn.Conv1d(768, 768, kernel_size=128, padding=128 // 2, groups=16)
         self.conv = nn.utils.weight_norm(self.conv, name="weight", dim=2)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -123,37 +114,27 @@ class PositionalConvEmbedding(nn.Module):
 
 
 class TransformerEncoder(nn.Module):
-    def __init__(
-            self, encoder_layer: nn.TransformerEncoderLayer, num_layers: int
-    ) -> None:
+    def __init__(self, encoder_layer: nn.TransformerEncoderLayer, num_layers: int) -> None:
         super(TransformerEncoder, self).__init__()
-        self.layers = nn.ModuleList(
-            [copy.deepcopy(encoder_layer) for _ in range(num_layers)]
-        )
+        self.layers = nn.ModuleList([copy.deepcopy(encoder_layer) for _ in range(num_layers)])
         self.num_layers = num_layers
 
-    def forward(
-            self,
-            src: torch.Tensor,
-            mask: torch.Tensor = None,
-            src_key_padding_mask: torch.Tensor = None,
-            output_layer: Optional[int] = None,
-    ) -> torch.Tensor:
+    def forward(self,
+                src: torch.Tensor,
+                mask: torch.Tensor = None,
+                src_key_padding_mask: torch.Tensor = None,
+                output_layer: Optional[int] = None) -> torch.Tensor:
         output = src
         for layer in self.layers[:output_layer]:
-            output = layer(
-                output, src_mask=mask, src_key_padding_mask=src_key_padding_mask
-            )
+            output = layer(output, src_mask=mask, src_key_padding_mask=src_key_padding_mask)
         return output
 
 
-def _compute_mask(
-        shape: Tuple[int, int],
-        mask_prob: float,
-        mask_length: int,
-        device: torch.device,
-        min_masks: int = 0,
-) -> torch.Tensor:
+def _compute_mask(shape: Tuple[int, int],
+                  mask_prob: float,
+                  mask_length: int,
+                  device: torch.device,
+                  min_masks: int = 0) -> torch.Tensor:
     batch_size, sequence_length = shape
 
     if mask_length < 1:
@@ -176,9 +157,7 @@ def _compute_mask(
     mask = torch.zeros((batch_size, sequence_length), device=device, dtype=torch.bool)
 
     # uniform distribution to sample from, make sure that offset samples are < sequence_length
-    uniform_dist = torch.ones(
-        (batch_size, sequence_length - (mask_length - 1)), device=device
-    )
+    uniform_dist = torch.ones((batch_size, sequence_length - (mask_length - 1)), device=device)
 
     # get random indices to mask
     mask_indices = torch.multinomial(uniform_dist, num_masked_spans)
@@ -202,10 +181,9 @@ def _compute_mask(
     return mask
 
 
-def hubert_soft(
-        path: str,
-) -> HubertSoft:
-    r"""HuBERT-Soft from `"A Comparison of Discrete and Soft Speech Units for Improved Voice Conversion"`.
+def hubert_soft(path: str,) -> HubertSoft:
+    r"""
+    HuBERT-Soft from `"A Comparison of Discrete and Soft Speech Units for Improved Voice Conversion"`.
     Args:
         path (str): path of a pretrained model
     """

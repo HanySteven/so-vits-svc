@@ -1,4 +1,5 @@
-from typing import Optional,Union
+from typing import Optional, Union
+
 try:
     from typing import Literal
 except Exception as e:
@@ -10,11 +11,10 @@ from torch import nn
 from torch.nn import functional as F
 import scipy
 
-#from:https://github.com/fishaudio/fish-diffusion
 
-def repeat_expand(
-    content: Union[torch.Tensor, np.ndarray], target_len: int, mode: str = "nearest"
-):
+# from:https://github.com/fishaudio/fish-diffusion
+
+def repeat_expand(content: Union[torch.Tensor, np.ndarray], target_len: int, mode: str = "nearest"):
     """Repeat content to target length.
     This is a wrapper of torch.nn.functional.interpolate.
 
@@ -52,22 +52,15 @@ def repeat_expand(
 
 
 class BasePitchExtractor:
-    def __init__(
-        self,
-        hop_length: int = 512,
-        f0_min: float = 50.0,
-        f0_max: float = 1100.0,
-        keep_zeros: bool = True,
-    ):
-        """Base pitch extractor.
-
+    def __init__(self, hop_length: int = 512, f0_min: float = 50.0, f0_max: float = 1100.0, keep_zeros: bool = True):
+        """
+        Base pitch extractor.
         Args:
             hop_length (int, optional): Hop length. Defaults to 512.
             f0_min (float, optional): Minimum f0. Defaults to 50.0.
             f0_max (float, optional): Maximum f0. Defaults to 1100.0.
             keep_zeros (bool, optional): Whether keep zeros in pitch. Defaults to True.
         """
-
         self.hop_length = hop_length
         self.f0_min = f0_min
         self.f0_max = f0_max
@@ -87,11 +80,11 @@ class BasePitchExtractor:
 
         if self.keep_zeros:
             return f0
-        
+
         vuv_vector = torch.zeros_like(f0)
         vuv_vector[f0 > 0.0] = 1.0
         vuv_vector[f0 <= 0.0] = 0.0
-        
+
         # Remove 0 frequency and apply linear interpolation
         nzindex = torch.nonzero(f0).squeeze()
         f0 = torch.index_select(f0, dim=0, index=nzindex).cpu().numpy()
@@ -99,31 +92,30 @@ class BasePitchExtractor:
         time_frame = np.arange(pad_to) * self.hop_length / sampling_rate
 
         if f0.shape[0] <= 0:
-            return torch.zeros(pad_to, dtype=torch.float, device=x.device),torch.zeros(pad_to, dtype=torch.float, device=x.device)
+            return torch.zeros(pad_to, dtype=torch.float, device=x.device), \
+                torch.zeros(pad_to, dtype=torch.float, device=x.device)
 
         if f0.shape[0] == 1:
-            return torch.ones(pad_to, dtype=torch.float, device=x.device) * f0[0],torch.ones(pad_to, dtype=torch.float, device=x.device)
-    
+            return torch.ones(pad_to, dtype=torch.float, device=x.device) * f0[0], \
+                torch.ones(pad_to, dtype=torch.float, device=x.device)
+
         # Probably can be rewritten with torch?
         f0 = np.interp(time_frame, time_org, f0, left=f0[0], right=f0[-1])
         vuv_vector = vuv_vector.cpu().numpy()
-        vuv_vector = np.ceil(scipy.ndimage.zoom(vuv_vector,pad_to/len(vuv_vector),order = 0))
-        
-        return f0,vuv_vector
+        vuv_vector = np.ceil(scipy.ndimage.zoom(vuv_vector, pad_to / len(vuv_vector), order=0))
+
+        return f0, vuv_vector
 
 
 class MaskedAvgPool1d(nn.Module):
-    def __init__(
-        self, kernel_size: int, stride: Optional[int] = None, padding: Optional[int] = 0
-    ):
-        """An implementation of mean pooling that supports masked values.
-
+    def __init__(self, kernel_size: int, stride: Optional[int] = None, padding: Optional[int] = 0):
+        """
+        An implementation of mean pooling that supports masked values.
         Args:
             kernel_size (int): The size of the median pooling window.
             stride (int, optional): The stride of the median pooling window. Defaults to None.
             padding (int, optional): The padding of the median pooling window. Defaults to 0.
         """
-
         super(MaskedAvgPool1d, self).__init__()
         self.kernel_size = kernel_size
         self.stride = stride or kernel_size
@@ -134,9 +126,7 @@ class MaskedAvgPool1d(nn.Module):
         if ndim == 2:
             x = x.unsqueeze(1)
 
-        assert (
-            x.dim() == 3
-        ), "Input tensor must have 2 or 3 dimensions (batch_size, channels, width)"
+        assert (x.dim() == 3), "Input tensor must have 2 or 3 dimensions (batch_size, channels, width)"
 
         # Apply the mask by setting masked elements to zero, or make NaNs zero
         if mask is None:
@@ -181,10 +171,9 @@ class MaskedAvgPool1d(nn.Module):
 
 
 class MaskedMedianPool1d(nn.Module):
-    def __init__(
-        self, kernel_size: int, stride: Optional[int] = None, padding: Optional[int] = 0
-    ):
-        """An implementation of median pooling that supports masked values.
+    def __init__(self, kernel_size: int, stride: Optional[int] = None, padding: Optional[int] = 0):
+        """
+        An implementation of median pooling that supports masked values.
 
         This implementation is inspired by the median pooling implementation in
         https://gist.github.com/rwightman/f2d3849281624be7c0f11c85c87c1598
@@ -194,7 +183,6 @@ class MaskedMedianPool1d(nn.Module):
             stride (int, optional): The stride of the median pooling window. Defaults to None.
             padding (int, optional): The padding of the median pooling window. Defaults to 0.
         """
-
         super(MaskedMedianPool1d, self).__init__()
         self.kernel_size = kernel_size
         self.stride = stride or kernel_size
@@ -205,9 +193,7 @@ class MaskedMedianPool1d(nn.Module):
         if ndim == 2:
             x = x.unsqueeze(1)
 
-        assert (
-            x.dim() == 3
-        ), "Input tensor must have 2 or 3 dimensions (batch_size, channels, width)"
+        assert (x.dim() == 3), "Input tensor must have 2 or 3 dimensions (batch_size, channels, width)"
 
         if mask is None:
             mask = ~torch.isnan(x)
@@ -217,9 +203,7 @@ class MaskedMedianPool1d(nn.Module):
         masked_x = torch.where(mask, x, torch.zeros_like(x))
 
         x = F.pad(masked_x, (self.padding, self.padding), mode="reflect")
-        mask = F.pad(
-            mask.float(), (self.padding, self.padding), mode="constant", value=0
-        )
+        mask = F.pad(mask.float(), (self.padding, self.padding), mode="constant", value=0)
 
         x = x.unfold(2, self.kernel_size, self.stride)
         mask = mask.unfold(2, self.kernel_size, self.stride)
@@ -228,7 +212,7 @@ class MaskedMedianPool1d(nn.Module):
         mask = mask.contiguous().view(mask.size()[:3] + (-1,)).to(x.device)
 
         # Combine the mask with the input tensor
-        #x_masked = torch.where(mask.bool(), x, torch.fill_(torch.zeros_like(x),float("inf")))
+        # x_masked = torch.where(mask.bool(), x, torch.fill_(torch.zeros_like(x),float("inf")))
         x_masked = torch.where(mask.bool(), x, torch.FloatTensor([float("inf")]).to(x.device))
 
         # Sort the masked tensor along the last dimension
@@ -245,7 +229,7 @@ class MaskedMedianPool1d(nn.Module):
 
         # Fill infinite values with NaNs
         median_pooled[torch.isinf(median_pooled)] = float("nan")
-        
+
         if ndim == 2:
             return median_pooled.squeeze(1)
 
@@ -254,16 +238,15 @@ class MaskedMedianPool1d(nn.Module):
 
 class CrepePitchExtractor(BasePitchExtractor):
     def __init__(
-        self,
-        hop_length: int = 512,
-        f0_min: float = 50.0,
-        f0_max: float = 1100.0,
-        threshold: float = 0.05,
-        keep_zeros: bool = False,
-        device = None,
-        model: Literal["full", "tiny"] = "full",
-        use_fast_filters: bool = True,
-    ):
+            self,
+            hop_length: int = 512,
+            f0_min: float = 50.0,
+            f0_max: float = 1100.0,
+            threshold: float = 0.05,
+            keep_zeros: bool = False,
+            device=None,
+            model: Literal["full", "tiny"] = "full",
+            use_fast_filters: bool = True):
         super().__init__(hop_length, f0_min, f0_max, keep_zeros)
 
         self.threshold = threshold
@@ -279,8 +262,8 @@ class CrepePitchExtractor(BasePitchExtractor):
             self.mean_filter = MaskedAvgPool1d(3, 1, 1).to(device)
 
     def __call__(self, x, sampling_rate=44100, pad_to=None):
-        """Extract pitch using crepe.
-
+        """
+        Extract pitch using crepe.
 
         Args:
             x (torch.Tensor): Audio signal, shape (1, T).
@@ -316,7 +299,7 @@ class CrepePitchExtractor(BasePitchExtractor):
 
         pd = torchcrepe.threshold.Silence(-60.0)(pd, x, sampling_rate, 512)
         f0 = torchcrepe.threshold.At(self.threshold)(f0, pd)
-        
+
         if self.use_fast_filters:
             f0 = self.mean_filter(f0)
         else:
@@ -325,7 +308,7 @@ class CrepePitchExtractor(BasePitchExtractor):
         f0 = torch.where(torch.isnan(f0), torch.full_like(f0, 0), f0)[0]
 
         if torch.all(f0 == 0):
-            rtn = f0.cpu().numpy() if pad_to==None else np.zeros(pad_to)
-            return rtn,rtn
-        
+            rtn = f0.cpu().numpy() if pad_to is None else np.zeros(pad_to)
+            return rtn, rtn
+
         return self.post_process(x, sampling_rate, f0, pad_to)

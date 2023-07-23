@@ -312,7 +312,6 @@ class SynthesizerTrn(nn.Module):
         self.predict_f0 = False
 
     def forward(self, c, f0, mel2ph, uv, noise=None, g=None):
-
         decoder_inp = F.pad(c, [0, 0, 1, 0])
         mel2ph_ = mel2ph.unsqueeze(2).repeat([1, 1, c.shape[-1]])
         c = torch.gather(decoder_inp, 1, mel2ph_).transpose(1, 2)  # [B, T, H]

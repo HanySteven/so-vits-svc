@@ -4,13 +4,11 @@ from fairseq import checkpoint_utils
 from onnxexport.model_onnx_speaker_mix import SynthesizerTrn
 import utils
 
+
 def get_hubert_model():
     vec_path = "hubert/checkpoint_best_legacy_500.pt"
     print("load model(s) from {}".format(vec_path))
-    models, saved_cfg, task = checkpoint_utils.load_model_ensemble_and_task(
-        [vec_path],
-        suffix="",
-    )
+    models, saved_cfg, task = checkpoint_utils.load_model_ensemble_and_task([vec_path], suffix="", )
     model = models[0]
     model.eval()
     return model
@@ -19,7 +17,8 @@ def get_hubert_model():
 def main(HubertExport, NetExport):
     path = "SoVits4.0"
 
-    '''if HubertExport:
+    '''
+    if HubertExport:
         device = torch.device("cpu")
         vec_path = "hubert/checkpoint_best_legacy_500.pt"
         models, saved_cfg, task = checkpoint_utils.load_model_ensemble_and_task(
@@ -45,7 +44,8 @@ def main(HubertExport, NetExport):
                                       2: "sample_length"
                                   },
                           }
-                          )'''
+                          )
+    '''
     if NetExport:
         device = torch.device("cpu")
         hps = utils.get_hparams_from_file(f"checkpoints/{path}/config.json")
@@ -70,10 +70,10 @@ def main(HubertExport, NetExport):
         if export_mix:
             n_spk = len(hps.spk)
             for i in range(n_spk):
-                spk_mix.append(1.0/float(n_spk))
+                spk_mix.append(1.0 / float(n_spk))
             test_sid = torch.tensor(spk_mix)
             SVCVITS.export_chara_mix(n_spk)
-        
+
         input_names = ["c", "f0", "mel2ph", "uv", "noise", "sid"]
         output_names = ["audio", ]
         SVCVITS.eval()

@@ -137,12 +137,12 @@ class SineGen(torch.nn.Module):
         """
         f0 = f0.unsqueeze(-1)
         fn = torch.multiply(f0, torch.arange(1, self.dim + 1, device=f0.device).reshape((1, 1, -1)))
-        rad_values = (fn / self.sampling_rate) % 1  ###%1 means the product of n_har cannot be optimized for post-processing
+        rad_values = (fn / self.sampling_rate) % 1  # %1 means the product of n_har cannot be optimized for post-processing
         rand_ini = torch.rand(fn.shape[0], fn.shape[2], device=fn.device)
         rand_ini[:, 0] = 0
         rad_values[:, 0, :] = rad_values[:, 0, :] + rand_ini
         is_half = rad_values.dtype is not torch.float32
-        tmp_over_one = torch.cumsum(rad_values.double(), 1)  # % 1  #####%1 means the following cumsum can no longer be optimized
+        tmp_over_one = torch.cumsum(rad_values.double(), 1)  # %1 means the following cumsum can no longer be optimized
         if is_half:
             tmp_over_one = tmp_over_one.half()
         else:
@@ -199,8 +199,7 @@ class SourceModuleHnNSF(torch.nn.Module):
         self.noise_std = add_noise_std
 
         # to produce sine waveforms
-        self.l_sin_gen = SineGen(sampling_rate, harmonic_num,
-                                 sine_amp, add_noise_std, voiced_threshod)
+        self.l_sin_gen = SineGen(sampling_rate, harmonic_num, sine_amp, add_noise_std, voiced_threshod)
 
         # to merge source harmonics into a single excitation
         self.l_linear = torch.nn.Linear(harmonic_num + 1, 1)
@@ -218,10 +217,7 @@ class Generator(torch.nn.Module):
         self.h = h
         self.num_kernels = len(h.resblock_kernel_sizes)
         self.num_upsamples = len(h.upsample_rates)
-        self.m_source = SourceModuleHnNSF(
-            sampling_rate=h.sampling_rate,
-            harmonic_num=8
-        )
+        self.m_source = SourceModuleHnNSF(sampling_rate=h.sampling_rate, harmonic_num=8)
         self.noise_convs = nn.ModuleList()
         self.conv_pre = weight_norm(Conv1d(h.num_mels, h.upsample_initial_channel, 7, 1, padding=3))
         resblock = ResBlock1 if h.resblock == '1' else ResBlock2

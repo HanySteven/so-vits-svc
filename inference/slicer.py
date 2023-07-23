@@ -4,17 +4,14 @@ import torchaudio
 
 
 class Slicer:
-    def __init__(self,
-                 sr: int,
-                 threshold: float = -40.,
-                 min_length: int = 5000,
-                 min_interval: int = 300,
-                 hop_size: int = 20,
-                 max_sil_kept: int = 5000):
+    def __init__(self, sr: int, threshold: float = -40., min_length: int = 5000, min_interval: int = 300,
+                 hop_size: int = 20, max_sil_kept: int = 5000):
         if not min_length >= min_interval >= hop_size:
             raise ValueError('The following condition must be satisfied: min_length >= min_interval >= hop_size')
+
         if not max_sil_kept >= hop_size:
             raise ValueError('The following condition must be satisfied: max_sil_kept >= hop_size')
+
         min_interval = sr * min_interval / 1000
         self.threshold = 10 ** (threshold / 20.)
         self.hop_size = round(sr * hop_size / 1000)
@@ -119,11 +116,7 @@ class Slicer:
 
 def cut(audio_path, db_thresh=-30, min_len=5000):
     audio, sr = librosa.load(audio_path, sr=None)
-    slicer = Slicer(
-        sr=sr,
-        threshold=db_thresh,
-        min_length=min_len
-    )
+    slicer = Slicer(sr=sr, threshold=db_thresh, min_length=min_len)
     chunks = slicer.slice(audio)
     return chunks
 

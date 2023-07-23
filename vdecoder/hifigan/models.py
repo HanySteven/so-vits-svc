@@ -96,7 +96,8 @@ class ResBlock2(torch.nn.Module):
 
 
 def padDiff(x):
-    return F.pad(F.pad(x, (0,0,-1,1), 'constant', 0) - x, (0,0,0,-1), 'constant', 0)
+    return F.pad(F.pad(x, (0, 0, -1, 1), 'constant', 0) - x, (0, 0, 0, -1), 'constant', 0)
+
 
 class SineGen(torch.nn.Module):
     """ Definition of sine generator
@@ -225,7 +226,7 @@ class SineGen(torch.nn.Module):
 
 
 class SourceModuleHnNSF(torch.nn.Module):
-    """ SourceModule for hn-nsf
+    """
     SourceModule(sampling_rate, harmonic_num=0, sine_amp=0.1,
                  add_noise_std=0.003, voiced_threshod=0)
     sampling_rate: sampling_rate in Hz
@@ -242,16 +243,14 @@ class SourceModuleHnNSF(torch.nn.Module):
     uv (batchsize, length, 1)
     """
 
-    def __init__(self, sampling_rate, harmonic_num=0, sine_amp=0.1,
-                 add_noise_std=0.003, voiced_threshod=0):
+    def __init__(self, sampling_rate, harmonic_num=0, sine_amp=0.1, add_noise_std=0.003, voiced_threshod=0):
         super(SourceModuleHnNSF, self).__init__()
 
         self.sine_amp = sine_amp
         self.noise_std = add_noise_std
 
         # to produce sine waveforms
-        self.l_sin_gen = SineGen(sampling_rate, harmonic_num,
-                                 sine_amp, add_noise_std, voiced_threshod)
+        self.l_sin_gen = SineGen(sampling_rate, harmonic_num, sine_amp, add_noise_std, voiced_threshod)
 
         # to merge source harmonics into a single excitation
         self.l_linear = torch.nn.Linear(harmonic_num + 1, 1)
@@ -291,9 +290,10 @@ class Generator(torch.nn.Module):
         for i, (u, k) in enumerate(zip(h["upsample_rates"], h["upsample_kernel_sizes"])):
             c_cur = h["upsample_initial_channel"] // (2 ** (i + 1))
             self.ups.append(weight_norm(
-                ConvTranspose1d(h["upsample_initial_channel"] // (2 ** i), h["upsample_initial_channel"] // (2 ** (i + 1)),
+                ConvTranspose1d(h["upsample_initial_channel"] // (2 ** i),
+                                h["upsample_initial_channel"] // (2 ** (i + 1)),
                                 k, u, padding=(k - u) // 2)))
-            if i + 1 < len(h["upsample_rates"]):  #
+            if i + 1 < len(h["upsample_rates"]):
                 stride_f0 = np.prod(h["upsample_rates"][i + 1:])
                 self.noise_convs.append(Conv1d(
                     1, c_cur, kernel_size=stride_f0 * 2, stride=stride_f0, padding=stride_f0 // 2))
